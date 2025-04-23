@@ -1,49 +1,54 @@
-
 from flask import Flask, request, jsonify
-import swisseph as swe
+from flask_cors import CORS
+from datetime import datetime
+from astronomia import planetposition, sun, moon, mercury, venus, mars, jupiter, saturn, uranus, neptune
+from astronomia.time import julian
 
 app = Flask(__name__)
+CORS(app)  # تفعيل CORS
 
-@app.route('/calculate', methods=['POST'])
-def calculate():
-    data = request.get_json()
+@app.route("/calculate", methods=["POST"])
+def calculate_chart():
     try:
-        date = data['date']  # 'YYYY-MM-DD'
-        time = data['time']  # 'HH:MM'
-        lat = float(data['lat'])
-        lon = float(data['lon'])
+        data = request.get_json()
+        date_str = data.get("date")
+        time_str = data.get("time")
+        lat = float(data.get("lat"))
+        lon = float(data.get("lon"))
 
-        year, month, day = map(int, date.split('-'))
-        hour, minute = map(int, time.split(':'))
-        ut_time = hour + minute / 60.0
-        jd = swe.julday(year, month, day, ut_time)
+        dt = datetime.strptime(f"{date_str} {time_str}", "%Y-%m-%d %H:%M")
+        jd = julian.Date(dt.year, dt.month, dt.day, dt.hour + dt.minute / 60)
 
-        swe.set_ephe_path(".")
-        swe.set_topo(lon, lat, 0)
+        # تحميل الكواكب
+        sun_pos = sun.position(jd)
+        moon_pos = moon.position(jd)
+        mercury_pos = mercury.position(jd)
+        venus_pos = venus.position(jd)
+        mars_pos = mars.position(jd)
+        jupiter_pos = jupiter.position(jd)
+        saturn_pos = saturn.position(jd)
+        uranus_pos = uranus.position(jd)
+        neptune_pos = neptune.position(jd)
 
-        planets_ids = {
-            'Sun': swe.SUN,
-            'Moon': swe.MOON,
-            'Mercury': swe.MERCURY,
-            'Venus': swe.VENUS,
-            'Mars': swe.MARS,
-            'Jupiter': swe.JUPITER,
-            'Saturn': swe.SATURN
+        result = {
+            "status": "success",
+            "planets": {
+                "الشمس": round(sun_pos.lon, 2),
+                "القمر": round(moon_pos.lon, 2),
+                "عطارد": round(mercury_pos.lon, 2),
+                "الزهرة": round(venus_pos.lon, 2),
+                "المريخ": round(mars_pos.lon, 2),
+                "المشتري": round(jupiter_pos.lon, 2),
+                "زحل": round(saturn_pos.lon, 2),
+                "أورانوس": round(uranus_pos.lon, 2),
+                "نبتون": round(neptune_pos.lon, 2),
+            }
         }
 
-        results = {}
-        for name, pid in planets_ids.items():
-            pos = swe.calc_ut(jd, pid)[0][0]
-            results[name] = round(pos, 2)
-
-        # حساب الطالع (البيت الأول)
-        asc = swe.houses(jd, lat, lon.encode() if isinstance(lon, str) else lon)[0][0]
-        results["Ascendant"] = round(asc, 2)
-
-        return jsonify({"status": "success", "planets": results})
+        return jsonify(result)
 
     except Exception as e:
-        return jsonify({"status": "error", "message": str(e)}), 500
+        return jsonify({"status": "error", "message": str(e)}), 400
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=10000)
+    app.run(debug=True)
