@@ -1,9 +1,25 @@
-
 services:
   - type: web
     name: astro-flask
+    runtime: python
+    pythonVersion: "3.9"  # تحديد نسخة بايثون
+    
+    # أوامر البناء والتشغيل
+    buildCommand: |
+      pip install -r requirements.txt
+    startCommand: |
+      python app.py
+      
+    # إعدادات الشبكة
+    port: 10000  # يجب أن يتطابق مع البورت في كود Flask
     env: python
-    buildCommand: "pip install -r requirements.txt"
-    startCommand: "python app.py"
+    
+    # متغيرات البيئة (مهمة لOpenCage API)
+    envVars:
+      - key: OPENCAGE_API_KEY
+        value: "your-actual-opencage-key"  # استبدلها بمفتاحك الحقيقي
+    
+    # إعدادات الخادم
     plan: free
-    envVars: []
+    healthCheckPath: /calculate  # نقطة فحص الصحة
+    autoDeploy: true
