@@ -4,13 +4,28 @@ from datetime import datetime
 from astronomia import sun, moon, mercury, venus, mars, jupiter, saturn, uranus, neptune
 from astronomia.time import julian
 from functools import lru_cache
+import logging
+logging.basicConfig(level=logging.DEBUG)
 
-app = Flask(__name__)
-CORS(app)  # يمكن تحديد مصادر محددة بدلاً من الكل
-
-@app.route("/calculate", methods=["POST"])
+@app.route("/calculate", methods=["PT"])
 def calculate_chart():
-    # التحقق من وجود البيانات المطلوبة
+    app.logger.info("Received request: %s", request.json)
+    # ... باقي الكود ...
+app = Flask(__name__)
+# استبدل إعدادات CORS بهذا:
+CORS(app, resources={
+    r"/calculate": {
+        "origins": ["*"],
+        "methods": ["POST", "OPTIONS"],
+        "allow_headers": ["Content-Type"]
+    }
+})
+
+# أضف هذا قبل route الرئيسي
+@app.route('/calculate', methods=['OPTIONS'])
+def handle_options():
+    return jsonify({"status": "success"}), 200
+    # التحقق منCORS وجود البيانات المطلوبة
     if not request.is_json:
         return jsonify({"status": "error", "message": "Request must be JSON"}), 400
     
